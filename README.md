@@ -7,7 +7,7 @@
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fkmccullagh19%2FLabBoxProjects%2Fmain%2FHealthExtensionDemo)
 
 2. Once you have successfully deployed the VMSS, you should see that the instances Health Status on the overview page in the portal as "Unhealthy": 
-![Unhealthyinstances]()
+![Unhealthyinstances](https://github.com/kmccullagh19/LabBoxProjects/blob/main/unhealthy.png)
 
 This is because there is no application at the root for the health extension to ping. To resolve this, please use the [custom script extension to install IIS.htm](https://docs.microsoft.com/en-us/azure/virtual-machine-scale-sets/tutorial-install-apps-powershell) at the root and then update the request path to look there. Once CSE is installed and IIS.htm is running at the root of all instances and the health application request path is configured, the instances should report a 200 response for Healthy. 
 
