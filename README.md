@@ -1,4 +1,4 @@
-# VMSS Failed Status via Application Health Extension Demo 
+# Resolve VMSS Failed Health Status via Application Health Extension Demo 
 
 **Goal**: The purpose of this demo is to understand how Application Health Extension displays health statuses of instances and understand how the health extension pings an application on the request path to assess health of th application. 
 
