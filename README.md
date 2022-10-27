@@ -12,6 +12,7 @@ From the article,
 
 ## Install the extension 
 
+```powershell
 #### Get information about the scale set
 $vmss = Get-AzVmss `
           -ResourceGroupName "myResourceGroup" `
@@ -31,7 +32,8 @@ Update-AzVmss `
   -ResourceGroupName "myResourceGroup" `
   -Name "myScaleSet" `
   -VirtualMachineScaleSet $vmss
-  
+``` 
+```powershell
   ## Allow communicaion 
  #### Create a rule to allow traffic over port 80
 $nsgFrontendRule = New-AzNetworkSecurityRuleConfig `
@@ -65,4 +67,6 @@ $frontendSubnetConfig = Set-AzVirtualNetworkSubnetConfig `
   -NetworkSecurityGroup $nsgFrontend
 
 Set-AzVirtualNetwork -VirtualNetwork $vnet
+  ```
   
+  3. Confirm that the Instances are now showing in a healthy State. 
