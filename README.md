@@ -78,4 +78,5 @@ $frontendSubnetConfig = Set-AzVirtualNetworkSubnetConfig `
 Set-AzVirtualNetwork -VirtualNetwork $vnet
   ```
   
-  3. Confirm that the Instances are now showing in a healthy State. 
+  3. Confirm that the Instances are now showing in a healthy State: 
+  ![HealthyState](https://github.com/kmccullagh19/LabBoxProjects/blob/main/healthy.png)
