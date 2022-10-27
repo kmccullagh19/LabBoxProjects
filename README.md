@@ -16,6 +16,12 @@ From the article,
 ## Install the extension 
 
 ```powershell
+
+$customConfig = @{
+  "fileUris" = (,"https://raw.githubusercontent.com/Azure-Samples/compute-automation-configurations/master/automate-iis.ps1");
+  "commandToExecute" = "powershell -ExecutionPolicy Unrestricted -File automate-iis.ps1"
+}
+
 #### Get information about the scale set
 $vmss = Get-AzVmss `
           -ResourceGroupName "myResourceGroup" `
