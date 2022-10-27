@@ -1,6 +1,6 @@
 # Resolve VMSS Failed Health Status via Application Health Extension Demo 
 
-**Goal**: The purpose of this demo is to understand how Application Health Extension displays health statuses of instances and understand how the health extension pings an application on the request path to assess health of th application. 
+**Goal**: The purpose of this demo is to understand how Application Health Extension displays health statuses of instances and understand how the health extension pings an application on the request path to assess health of the application. This lab will have you deploy a VMSS with an unhealthy status and resolve that by installing an application to the root via Custom Script Extension (CSE). 
 
 1. Deploy a new VMSS with the application health extension using a custom ARM template. Please use the below 'Deploy to GitHub' Button and enter the required parameters and deploy: 
 
