@@ -1,126 +1,234 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.7.4.23292",
+      "templateHash": "15689099884164541808"
+    }
+  },
   "parameters": {
-    "virtualMachineScaleSets_HealthExtensionDemo_name": {
-      "defaultValue": "HealthExtensionDemo",
-      "type": "String"
+    "vmssName": {
+      "type": "string",
+      "maxLength": 61,
+      "minLength": 3,
+      "metadata": {
+        "description": "String used as a base for naming resources. Must be 3-61 characters in length and globally unique across Azure. A hash is prepended to this string for some resources, and resource-specific information is appended."
+      }
     },
-    "networkSecurityGroups_basicNsgTestRGvnet733_nic01_externalid": {
-      "defaultValue": "/subscriptions/8a3c79de-f6bf-42e9-9217-47b936ba4d16/resourceGroups/TestRG/providers/Microsoft.Network/networkSecurityGroups/basicNsgTestRGvnet733-nic01",
-      "type": "String"
+    "vmSku": {
+      "type": "string",
+      "defaultValue": "Standard_A1_v2",
+      "metadata": {
+        "description": "Size of VMs in the VM Scale Set."
+      }
     },
-    "virtualNetworks_TestRGvnet733_externalid": {
-      "defaultValue": "/subscriptions/8a3c79de-f6bf-42e9-9217-47b936ba4d16/resourceGroups/TestRG/providers/Microsoft.Network/virtualNetworks/TestRGvnet733",
-      "type": "String"
+    "windowsOSVersion": {
+      "type": "string",
+      "defaultValue": "2019-Datacenter",
+      "allowedValues": [
+        "2008-R2-SP1",
+        "2012-Datacenter",
+        "2012-R2-Datacenter",
+        "2016-Datacenter",
+        "2019-Datacenter"
+      ],
+      "metadata": {
+        "description": "The Windows version for the VM. This will pick a fully patched image of this given Windows version. Allowed values: 2008-R2-SP1, 2012-Datacenter, 2012-R2-Datacenter & 2016-Datacenter, 2019-Datacenter."
+      }
     },
-    "loadBalancers_DemoLB_externalid": {
-      "defaultValue": "/subscriptions/8a3c79de-f6bf-42e9-9217-47b936ba4d16/resourceGroups/TestRG/providers/Microsoft.Network/loadBalancers/DemoLB",
-      "type": "String"
+    "instanceCount": {
+      "type": "int",
+      "defaultValue": 3,
+      "maxValue": 100,
+      "minValue": 1,
+      "metadata": {
+        "description": "Number of VM instances (100 or less)."
+      }
     },
-    "disks_HealthExtensionDemo_HealthExtensionDemo_0OS__1_87daac8e377e49d3b35c3617717fd920_externalid": {
-      "defaultValue": "/subscriptions/8a3c79de-f6bf-42e9-9217-47b936ba4d16/resourceGroups/TestRG/providers/Microsoft.Compute/disks/HealthExtensionDemo_HealthExtensionDemo_0OS__1_87daac8e377e49d3b35c3617717fd920",
-      "type": "String"
+    "singlePlacementGroup": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "When true this limits the scale set to a single placement group, of max size 100 virtual machines. NOTE: If singlePlacementGroup is true, it may be modified to false. However, if singlePlacementGroup is false, it may not be modified to true."
+      }
     },
     "adminUsername": {
-      "type": "String"
+      "type": "string",
+      "defaultValue": "vmssadmin",
+      "metadata": {
+        "description": "Admin username on all VMs."
+      }
     },
     "adminPassword": {
-      "type": "SecureString"
+      "type": "secureString",
+      "metadata": {
+        "description": "Admin password on all VMs."
+      }
     },
-    "disks_HealthExtensionDemo_HealthExtensionDemo_1OS__1_97d81b33ff314904830534b469b283f0_externalid": {
-      "defaultValue": "/subscriptions/8a3c79de-f6bf-42e9-9217-47b936ba4d16/resourceGroups/TestRG/providers/Microsoft.Compute/disks/HealthExtensionDemo_HealthExtensionDemo_1OS__1_97d81b33ff314904830534b469b283f0",
-      "type": "String"
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    },
+    "platformFaultDomainCount": {
+      "type": "int",
+      "defaultValue": 1,
+      "metadata": {
+        "description": "Fault Domain count for each placement group."
+      }
     }
   },
   "variables": {
-	  "vmScaleSetName": "[toLower(substring(format('vmssName{0}', uniqueString(resourceGroup().id)), 0, 9))]"
+    "vmScaleSetName": "[toLower(substring(format('vmssName{0}', uniqueString(resourceGroup().id)), 0, 9))]",
+    "longvmScaleSet": "[toLower(parameters('vmssName'))]",
+    "addressPrefix": "10.0.0.0/16",
+    "subnetPrefix": "10.0.0.0/24",
+    "vNetName": "[format('{0}vnet', variables('vmScaleSetName'))]",
+    "publicIPAddressName": "[format('{0}pip', variables('vmScaleSetName'))]",
+    "subnetName": "[format('{0}subnet', variables('vmScaleSetName'))]",
+    "loadBalancerName": "[format('{0}lb', variables('vmScaleSetName'))]",
+    "publicIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))]",
+    "lbProbeID": "[resourceId('Microsoft.Network/loadBalancers/probes', variables('loadBalancerName'), 'tcpProbe')]",
+    "natPoolName": "[format('{0}natpool', variables('vmScaleSetName'))]",
+    "bePoolName": "[format('{0}bepool', variables('vmScaleSetName'))]",
+    "lbPoolID": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', variables('loadBalancerName'), variables('bePoolName'))]",
+    "natStartPort": 50000,
+    "natEndPort": 50119,
+    "natBackendPort": 3389,
+    "nicName": "[format('{0}nic', variables('vmScaleSetName'))]",
+    "ipConfigName": "[format('{0}ipconfig', variables('vmScaleSetName'))]",
+    "frontEndIPConfigID": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', variables('loadBalancerName'), 'loadBalancerFrontEnd')]",
+    "osType": {
+      "publisher": "MicrosoftWindowsServer",
+      "offer": "WindowsServer",
+      "sku": "[parameters('windowsOSVersion')]",
+      "version": "latest"
+    },
+    "imageReference": "[variables('osType')]"
   },
   "resources": [
     {
+      "type": "Microsoft.Network/loadBalancers",
+      "apiVersion": "2021-05-01",
+      "name": "[variables('loadBalancerName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "frontendIPConfigurations": [
+          {
+            "name": "LoadBalancerFrontEnd",
+            "properties": {
+              "publicIPAddress": {
+                "id": "[variables('publicIPAddressID')]"
+              }
+            }
+          }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "[variables('bePoolName')]"
+          }
+        ],
+        "inboundNatPools": [
+          {
+            "name": "[variables('natPoolName')]",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[variables('frontEndIPConfigID')]"
+              },
+              "protocol": "Tcp",
+              "frontendPortRangeStart": "[variables('natStartPort')]",
+              "frontendPortRangeEnd": "[variables('natEndPort')]",
+              "backendPort": "[variables('natBackendPort')]"
+            }
+          }
+        ],
+        "loadBalancingRules": [
+          {
+            "name": "LBRule",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[variables('frontEndIPConfigID')]"
+              },
+              "backendAddressPool": {
+                "id": "[variables('lbPoolID')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 80,
+              "backendPort": 80,
+              "enableFloatingIP": false,
+              "idleTimeoutInMinutes": 5,
+              "probe": {
+                "id": "[variables('lbProbeID')]"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "name": "tcpProbe",
+            "properties": {
+              "protocol": "Tcp",
+              "port": 80,
+              "intervalInSeconds": 5,
+              "numberOfProbes": 2
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))]"
+      ]
+    },
+    {
       "type": "Microsoft.Compute/virtualMachineScaleSets",
-      "apiVersion": "2022-03-01",
-      "name": "[parameters('virtualMachineScaleSets_HealthExtensionDemo_name')]",
-      "location": "centralus",
+      "apiVersion": "2021-11-01",
+      "name": "[variables('vmScaleSetName')]",
+      "location": "[parameters('location')]",
       "sku": {
-        "name": "Standard_D2s_v3",
+        "name": "[parameters('vmSku')]",
         "tier": "Standard",
-        "capacity": 2
+        "capacity": "[parameters('instanceCount')]"
       },
       "properties": {
-        "singlePlacementGroup": false,
-        "orchestrationMode": "Uniform",
+        "overprovision": true,
         "upgradePolicy": {
-          "mode": "Manual"
+          "mode": "Automatic"
         },
-        "scaleInPolicy": {
-          "rules": [
-            "Default"
-          ]
-        },
+        "singlePlacementGroup": "[parameters('singlePlacementGroup')]",
+        "platformFaultDomainCount": "[parameters('platformFaultDomainCount')]",
         "virtualMachineProfile": {
+          "storageProfile": {
+            "osDisk": {
+              "caching": "ReadWrite",
+              "createOption": "FromImage"
+            },
+            "imageReference": "[variables('imageReference')]"
+          },
           "osProfile": {
             "computerNamePrefix": "[variables('vmScaleSetName')]",
             "adminUsername": "[parameters('adminUsername')]",
-            "adminPassword": "[parameters('adminPassword')]",
-            "windowsConfiguration": {
-              "provisionVMAgent": true,
-              "enableAutomaticUpdates": true
-            },
-            "secrets": [],
-            "allowExtensionOperations": true
-          },
-          "storageProfile": {
-            "osDisk": {
-              "osType": "Windows",
-              "createOption": "FromImage",
-              "caching": "ReadWrite",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              },
-              "diskSizeGB": 127
-            },
-            "imageReference": {
-              "publisher": "MicrosoftWindowsServer",
-              "offer": "WindowsServer",
-              "sku": "2019-datacenter-gensecond",
-              "version": "latest"
-            }
+            "adminPassword": "[parameters('adminPassword')]"
           },
           "networkProfile": {
             "networkInterfaceConfigurations": [
               {
-                "name": "TestRGvnet733-nic01",
+                "name": "[variables('nicName')]",
                 "properties": {
                   "primary": true,
-                  "enableAcceleratedNetworking": true,
-                  "networkSecurityGroup": {
-                    "id": "[parameters('networkSecurityGroups_basicNsgTestRGvnet733_nic01_externalid')]"
-                  },
-                  "dnsSettings": {
-                    "dnsServers": []
-                  },
-                  "enableIPForwarding": false,
                   "ipConfigurations": [
                     {
-                      "name": "TestRGvnet733-nic01-defaultIpConfiguration",
+                      "name": "[variables('ipConfigName')]",
                       "properties": {
-                        "publicIPAddressConfiguration": {
-                          "name": "publicIp-TestRGvnet733-nic01",
-                          "properties": {
-                            "idleTimeoutInMinutes": 15,
-                            "ipTags": [],
-                            "publicIPAddressVersion": "IPv4"
-                          }
-                        },
-                        "primary": true,
                         "subnet": {
-                          "id": "[concat(parameters('virtualNetworks_TestRGvnet733_externalid'), '/subnets/default')]"
+                          "id": "[reference(resourceId('Microsoft.Network/virtualNetworks', variables('vNetName'))).subnets[0].id]"
                         },
-                        "privateIPAddressVersion": "IPv4",
                         "loadBalancerBackendAddressPools": [
                           {
-                            "id": "[concat(parameters('loadBalancers_DemoLB_externalid'), '/backendAddressPools/bepool')]"
+                            "id": "[variables('lbPoolID')]"
                           }
                         ]
                       }
@@ -130,300 +238,81 @@
               }
             ]
           },
-          "diagnosticsProfile": {
-            "bootDiagnostics": {
-              "enabled": true
-            }
-          },
           "extensionProfile": {
             "extensions": [
-              {
-                "name": "HealthExtension",
-                "properties": {
-                  "autoUpgradeMinorVersion": false,
-                  "publisher": "Microsoft.ManagedServices",
-                  "type": "ApplicationHealthWindows",
-                  "typeHandlerVersion": "1.0",
-                  "settings": {
-                    "protocol": "http",
-                    "port": 80,
-                    "requestPath": "/"
-                  }
-                }
-              }
+                            {
+                                "name": "HealthExtension",
+                                "properties": {
+                                    "autoUpgradeMinorVersion": false,
+                                    "publisher": "Microsoft.ManagedServices",
+                                    "type": "ApplicationHealthWindows",
+                                    "typeHandlerVersion": "1.0",
+                                    "settings": {
+                                        "protocol": "http",
+                                        "port": 80,
+                                        "requestPath": "/"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "MicrosoftMonitoringAgent",
+                                "properties": {
+                                    "autoUpgradeMinorVersion": true,
+                                    "publisher": "Microsoft.EnterpriseCloud.Monitoring",
+                                    "type": "MicrosoftMonitoringAgent",
+                                    "typeHandlerVersion": "1.0",
+                                    "settings": {
+                                        "workspaceId": "0bfca40c-6d0d-443c-884c-d1b407bed835",
+                                        "stopOnMultipleConnections": "true"
+                                    }
+                                }
+                            }
             ]
           }
-        },
-        "overprovision": false,
-        "doNotRunExtensionsOnOverprovisionedVMs": false,
-        "platformFaultDomainCount": 1,
-        "automaticRepairsPolicy": {
-          "enabled": false,
-          "gracePeriod": "PT10M"
         }
-      }
-    },
-    {
-      "type": "Microsoft.Compute/virtualMachineScaleSets/extensions",
-      "apiVersion": "2022-03-01",
-      "name": "[concat(parameters('virtualMachineScaleSets_HealthExtensionDemo_name'), '/HealthExtension')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachineScaleSets', parameters('virtualMachineScaleSets_HealthExtensionDemo_name'))]"
-      ],
-      "properties": {
-        "provisioningState": "Succeeded",
-        "autoUpgradeMinorVersion": false,
-        "publisher": "Microsoft.ManagedServices",
-        "type": "ApplicationHealthWindows",
-        "typeHandlerVersion": "1.0",
-        "settings": {
-          "protocol": "http",
-          "port": 80,
-          "requestPath": "/"
-        }
-      }
-    },
-    {
-      "type": "Microsoft.Compute/virtualMachineScaleSets/virtualMachines",
-      "apiVersion": "2022-03-01",
-      "name": "[concat(parameters('virtualMachineScaleSets_HealthExtensionDemo_name'), '/0')]",
-      "location": "centralus",
-      "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachineScaleSets', parameters('virtualMachineScaleSets_HealthExtensionDemo_name'))]"
-      ],
-      "sku": {
-        "name": "Standard_D2s_v3",
-        "tier": "Standard"
       },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vNetName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2021-05-01",
+      "name": "[variables('publicIPAddressName')]",
+      "location": "[parameters('location')]",
       "properties": {
-        "networkProfileConfiguration": {
-          "networkInterfaceConfigurations": [
-            {
-              "name": "TestRGvnet733-nic01",
-              "properties": {
-                "primary": true,
-                "enableAcceleratedNetworking": true,
-                "networkSecurityGroup": {
-                  "id": "[parameters('networkSecurityGroups_basicNsgTestRGvnet733_nic01_externalid')]"
-                },
-                "dnsSettings": {
-                  "dnsServers": []
-                },
-                "enableIPForwarding": false,
-                "ipConfigurations": [
-                  {
-                    "name": "TestRGvnet733-nic01-defaultIpConfiguration",
-                    "properties": {
-                      "publicIPAddressConfiguration": {
-                        "name": "publicIp-TestRGvnet733-nic01",
-                        "properties": {
-                          "idleTimeoutInMinutes": 15,
-                          "ipTags": [],
-                          "publicIPAddressVersion": "IPv4"
-                        }
-                      },
-                      "primary": true,
-                      "subnet": {
-                        "id": "[concat(parameters('virtualNetworks_TestRGvnet733_externalid'), '/subnets/default')]"
-                      },
-                      "privateIPAddressVersion": "IPv4",
-                      "loadBalancerBackendAddressPools": [
-                        {
-                          "id": "[concat(parameters('loadBalancers_DemoLB_externalid'), '/backendAddressPools/bepool')]"
-                        }
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        "hardwareProfile": {
-          "vmSize": "Standard_D2s_v3"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "publisher": "MicrosoftWindowsServer",
-            "offer": "WindowsServer",
-            "sku": "2019-datacenter-gensecond",
-            "version": "latest"
-          },
-          "osDisk": {
-            "osType": "Windows",
-            "name": "HealthExtensionDemo_HealthExtensionDemo_0OS__1_87daac8e377e49d3b35c3617717fd920",
-            "createOption": "FromImage",
-            "caching": "ReadWrite",
-            "managedDisk": {
-              "storageAccountType": "Premium_LRS",
-              "id": "[parameters('disks_HealthExtensionDemo_HealthExtensionDemo_0OS__1_87daac8e377e49d3b35c3617717fd920_externalid')]"
-            },
-            "diskSizeGB": 127
-          },
-          "dataDisks": []
-        },
-        "osProfile": {
-          "computerName": "[variables('vmScaleSetName')]",
-          "adminUsername": "mccullaghk15",
-          "windowsConfiguration": {
-            "provisionVMAgent": true,
-            "enableAutomaticUpdates": true
-          },
-          "secrets": [],
-          "allowExtensionOperations": true,
-          "requireGuestProvisionSignal": true
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[concat(resourceId('Microsoft.Compute/virtualMachineScaleSets/virtualMachines', parameters('virtualMachineScaleSets_HealthExtensionDemo_name'), '0'), '/networkInterfaces/TestRGvnet733-nic01')]"
-            }
-          ]
-        },
-        "diagnosticsProfile": {
-          "bootDiagnostics": {
-            "enabled": true
-          }
+        "publicIPAllocationMethod": "Static",
+        "dnsSettings": {
+          "domainNameLabel": "[variables('longvmScaleSet')]"
         }
       }
     },
     {
-      "type": "Microsoft.Compute/virtualMachineScaleSets/virtualMachines",
-      "apiVersion": "2022-03-01",
-      "name": "[concat(parameters('virtualMachineScaleSets_HealthExtensionDemo_name'), '/1')]",
-      "location": "centralus",
-      "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachineScaleSets', parameters('virtualMachineScaleSets_HealthExtensionDemo_name'))]"
-      ],
-      "sku": {
-        "name": "Standard_D2s_v3",
-        "tier": "Standard"
-      },
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2021-05-01",
+      "name": "[variables('vNetName')]",
+      "location": "[parameters('location')]",
       "properties": {
-        "networkProfileConfiguration": {
-          "networkInterfaceConfigurations": [
-            {
-              "name": "TestRGvnet733-nic01",
-              "properties": {
-                "primary": true,
-                "enableAcceleratedNetworking": true,
-                "networkSecurityGroup": {
-                  "id": "[parameters('networkSecurityGroups_basicNsgTestRGvnet733_nic01_externalid')]"
-                },
-                "dnsSettings": {
-                  "dnsServers": []
-                },
-                "enableIPForwarding": false,
-                "ipConfigurations": [
-                  {
-                    "name": "TestRGvnet733-nic01-defaultIpConfiguration",
-                    "properties": {
-                      "publicIPAddressConfiguration": {
-                        "name": "publicIp-TestRGvnet733-nic01",
-                        "properties": {
-                          "idleTimeoutInMinutes": 15,
-                          "ipTags": [],
-                          "publicIPAddressVersion": "IPv4"
-                        }
-                      },
-                      "primary": true,
-                      "subnet": {
-                        "id": "[concat(parameters('virtualNetworks_TestRGvnet733_externalid'), '/subnets/default')]"
-                      },
-                      "privateIPAddressVersion": "IPv4",
-                      "loadBalancerBackendAddressPools": [
-                        {
-                          "id": "[concat(parameters('loadBalancers_DemoLB_externalid'), '/backendAddressPools/bepool')]"
-                        }
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('addressPrefix')]"
           ]
         },
-        "hardwareProfile": {
-          "vmSize": "Standard_D2s_v3"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "publisher": "MicrosoftWindowsServer",
-            "offer": "WindowsServer",
-            "sku": "2019-datacenter-gensecond",
-            "version": "latest"
-          },
-          "osDisk": {
-            "osType": "Windows",
-            "name": "HealthExtensionDemo_HealthExtensionDemo_1OS__1_97d81b33ff314904830534b469b283f0",
-            "createOption": "FromImage",
-            "caching": "ReadWrite",
-            "managedDisk": {
-              "storageAccountType": "Premium_LRS",
-              "id": "[parameters('disks_HealthExtensionDemo_HealthExtensionDemo_1OS__1_97d81b33ff314904830534b469b283f0_externalid')]"
-            },
-            "diskSizeGB": 127
-          },
-          "dataDisks": []
-        },
-        "osProfile": {
-          "computerName": "healthext000001",
-          "adminUsername": "mccullaghk15",
-          "windowsConfiguration": {
-            "provisionVMAgent": true,
-            "enableAutomaticUpdates": true
-          },
-          "secrets": [],
-          "allowExtensionOperations": true,
-          "requireGuestProvisionSignal": true
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[concat(resourceId('Microsoft.Compute/virtualMachineScaleSets/virtualMachines', parameters('virtualMachineScaleSets_HealthExtensionDemo_name'), '1'), '/networkInterfaces/TestRGvnet733-nic01')]"
+        "subnets": [
+          {
+            "name": "[variables('subnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('subnetPrefix')]"
             }
-          ]
-        },
-        "diagnosticsProfile": {
-          "bootDiagnostics": {
-            "enabled": true
           }
-        }
-      }
-    },
-    {
-      "type": "Microsoft.Compute/virtualMachineScaleSets/virtualMachines/extensions",
-      "apiVersion": "2022-03-01",
-      "name": "[concat(parameters('virtualMachineScaleSets_HealthExtensionDemo_name'), '/0/HealthExtension')]",
-      "location": "centralus",
-      "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachineScaleSets/virtualMachines', parameters('virtualMachineScaleSets_HealthExtensionDemo_name'), '0')]",
-        "[resourceId('Microsoft.Compute/virtualMachineScaleSets', parameters('virtualMachineScaleSets_HealthExtensionDemo_name'))]"
-      ],
-      "properties": {
-        "autoUpgradeMinorVersion": false,
-        "publisher": "Microsoft.ManagedServices",
-        "type": "ApplicationHealthWindows",
-        "typeHandlerVersion": "1.0",
-        "settings": {}
-      }
-    },
-    {
-      "type": "Microsoft.Compute/virtualMachineScaleSets/virtualMachines/extensions",
-      "apiVersion": "2022-03-01",
-      "name": "[concat(parameters('virtualMachineScaleSets_HealthExtensionDemo_name'), '/1/HealthExtension')]",
-      "location": "centralus",
-      "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachineScaleSets/virtualMachines', parameters('virtualMachineScaleSets_HealthExtensionDemo_name'), '1')]",
-        "[resourceId('Microsoft.Compute/virtualMachineScaleSets', parameters('virtualMachineScaleSets_HealthExtensionDemo_name'))]"
-      ],
-      "properties": {
-        "autoUpgradeMinorVersion": false,
-        "publisher": "Microsoft.ManagedServices",
-        "type": "ApplicationHealthWindows",
-        "typeHandlerVersion": "1.0",
-        "settings": {}
+        ]
       }
     }
-  ]
+  ],
+  "outputs": {
+    "applicationUrl": {
+      "type": "string",
+      "value": "[uri(format('http://{0}', reference(resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))).dnsSettings.fqdn), '/MyApp')]"
+    }
+  }
 }
