@@ -4,7 +4,7 @@
 
 1. Deploy a new VMSS with the application health extension using a custom ARM template. Please use the below 'Deploy to GitHub' Button and enter the required parameters and deploy: 
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fkmccullagh19%2FLabBoxProjects%2Fmain%2FHealthExtensionDemo)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fkmccullagh19%2FLabBoxProjects%2Fmain%2FTemplates%2FHealthExtensionDemo)
 
 2. Once you have successfully deployed the VMSS, you should see that the instances Health Status on the overview page in the portal as "Unhealthy": 
 ![Unhealthyinstances](https://github.com/kmccullagh19/LabBoxProjects/blob/main/unhealthy.png)
