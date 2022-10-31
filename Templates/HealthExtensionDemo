@@ -76,7 +76,7 @@
     }
   },
   "variables": {
-    "vmScaleSetName": "[toLower(substring(format('healthexdemo{0}', uniqueString(resourceGroup().id)), 0, 9))]",
+    "vmScaleSetName": "[parameters('VmssName')]",
     "longvmScaleSet": "[toLower(parameters('vmssName'))]",
     "addressPrefix": "10.0.0.0/16",
     "subnetPrefix": "10.0.0.0/24",
