@@ -206,7 +206,7 @@
             "imageReference": "[variables('imageReference')]"
           },
           "osProfile": {
-            "computerNamePrefix": "[variables('vmScaleSetName')]",
+            "computerNamePrefix": "cpuprefix",
             "adminUsername": "[parameters('adminUsername')]",
             "adminPassword": "[parameters('adminPassword')]"
           },
